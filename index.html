@@ -1,0 +1,307 @@
+```html
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Aviator Pro - Crash Game & Wallet</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0c10;
+            color: #ffffff;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: #13141a; }
+        ::-webkit-scrollbar-thumb { background: #2d2f3b; border-radius: 99px; }
+
+        /* Game Arena Background */
+        #game-stage {
+            background: radial-gradient(circle at 18% 85%, #241326 0%, #101116 65%, #0b0c10 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Text Glows */
+        .glow-white { text-shadow: 0 0 28px rgba(255, 255, 255, 0.35); }
+        .glow-red { text-shadow: 0 0 32px rgba(239, 68, 68, 0.85); }
+
+        /* History Pills */
+        .pill-blue {
+            background: rgba(56, 189, 248, 0.14);
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.32);
+        }
+        .pill-purple {
+            background: rgba(168, 85, 247, 0.16);
+            color: #c084fc;
+            border: 1px solid rgba(168, 85, 247, 0.35);
+        }
+        .pill-pink {
+            background: rgba(244, 63, 94, 0.2);
+            color: #fb7185;
+            border: 1px solid rgba(244, 63, 94, 0.45);
+        }
+
+        /* Action Buttons */
+        .btn-bet {
+            background: linear-gradient(180deg, #22c55e 0%, #15803d 100%);
+            box-shadow: 0 4px 16px rgba(34, 197, 94, 0.35), inset 0 1px 0 rgba(255,255,255,0.28);
+        }
+        .btn-bet:hover { filter: brightness(1.06); }
+        .btn-bet:active { transform: scale(0.98); }
+
+        .btn-cancel {
+            background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%);
+            box-shadow: 0 4px 16px rgba(239, 68, 68, 0.38), inset 0 1px 0 rgba(255,255,255,0.25);
+        }
+        .btn-cancel:active { transform: scale(0.98); }
+
+        .btn-cashout {
+            background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+            box-shadow: 0 4px 20px rgba(245, 158, 11, 0.45), inset 0 1px 0 rgba(255,255,255,0.35);
+        }
+        .btn-cashout:hover { filter: brightness(1.06); }
+        .btn-cashout:active { transform: scale(0.98); }
+
+        /* Hide number input arrows */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] { -moz-appearance: textfield; }
+
+        /* Toast Animation */
+        @keyframes toastSlide {
+            0% { opacity: 0; transform: translateY(-14px) scale(0.95); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .toast-anim { animation: toastSlide 0.25s ease-out forwards; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between bg-[#0b0c10]">
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2 w-full max-w-sm px-3 pointer-events-none"></div>
+
+    <!-- Top Navigation Header -->
+    <header class="bg-[#16171d] border-b border-[#262833] px-3 py-2.5 flex items-center justify-between sticky top-0 z-40 shadow-md">
+        <!-- Brand Logo -->
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[#ef4444] to-[#991b1b] flex items-center justify-center shadow-lg shadow-red-600/30">
+                <svg class="w-5 h-5 text-white -rotate-12" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+                </svg>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="font-black italic text-xl tracking-tight text-[#ef4444]">AVIATOR</span>
+                <span class="hidden sm:inline-block text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded font-bold">PRO</span>
+            </div>
+        </div>
+
+        <!-- Wallet Balance, Deposit/Withdraw & Audio/Voice Toggles -->
+        <div class="flex items-center gap-1.5 sm:gap-2.5">
+            <!-- Wallet Pill -->
+            <div class="bg-[#0f1015] border border-[#2a2c38] rounded-full pl-3 pr-1.5 py-1 flex items-center gap-2">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:gap-1.5">
+                    <span class="text-[10px] sm:text-xs text-gray-400 font-medium leading-none">Wallet</span>
+                    <span id="balance-display" class="text-xs sm:text-sm font-extrabold text-emerald-400 tabular-nums">₹0.00</span>
+                </div>
+                <button onclick="openWalletModal('deposit')" class="bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-[11px] sm:text-xs px-2.5 py-1 rounded-full transition shadow-sm">
+                    + DEPOSIT
+                </button>
+                <button onclick="openWalletModal('withdraw')" class="hidden md:inline-block bg-[#242631] hover:bg-[#303342] text-gray-200 font-bold text-xs px-2.5 py-1 rounded-full transition">
+                    WITHDRAW
+                </button>
+            </div>
+
+            <!-- Voice Toggle -->
+            <button id="voice-btn" onclick="toggleVoice()" class="h-8 sm:h-9 px-2.5 rounded-full bg-[#21232d] hover:bg-[#2c2f3d] border border-[#323544] flex items-center gap-1.5 text-xs font-bold transition" title="Voice Commentary">
+                <span id="voice-dot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span id="voice-text" class="text-emerald-400 hidden sm:inline">Voice ON</span>
+                <svg class="w-4 h-4 text-gray-200 sm:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+                </svg>
+            </button>
+
+            <!-- Sound Toggle -->
+            <button id="sound-btn" onclick="toggleSound()" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#21232d] hover:bg-[#2c2f3d] border border-[#323544] flex items-center justify-center transition" title="Sound Effects">
+                <svg id="icon-sound-on" class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
+                </svg>
+                <svg id="icon-sound-off" class="w-4 h-4 text-red-400 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Layout Grid -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-3 grid grid-cols-1 lg:grid-cols-12 gap-3">
+        
+        <!-- Left Sidebar: Live Players -->
+        <aside class="lg:col-span-4 xl:col-span-3 order-2 lg:order-1 bg-[#16171d] rounded-2xl border border-[#252732] flex flex-col overflow-hidden h-[320px] lg:h-[calc(100vh-84px)]">
+            <div class="p-3 bg-[#1c1d25] border-b border-[#272935] flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                    <span class="text-xs font-extrabold uppercase tracking-wider text-gray-200">Live Bets</span>
+                </div>
+                <span class="text-xs font-semibold text-gray-400">Online: <strong id="online-count" class="text-white">0</strong></span>
+            </div>
+
+            <div class="grid grid-cols-12 px-3 py-1.5 text-[11px] font-semibold text-gray-400 bg-[#121318] border-b border-[#22242e]">
+                <div class="col-span-5">Player</div>
+                <div class="col-span-3 text-right">Bet (₹)</div>
+                <div class="col-span-2 text-center">Mult</div>
+                <div class="col-span-2 text-right">Win</div>
+            </div>
+
+            <div id="live-bets-container" class="flex-1 overflow-y-auto divide-y divide-[#1f212b] px-1">
+                <!-- Populated by JS -->
+            </div>
+        </aside>
+
+        <!-- Right Main Arena & Betting Controls -->
+        <section class="lg:col-span-8 xl:col-span-9 order-1 lg:order-2 flex flex-col gap-3">
+            
+            <!-- Recent Multipliers History Strip -->
+            <div class="bg-[#16171d] rounded-xl border border-[#252732] px-3 py-2 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 overflow-hidden flex-1">
+                    <span class="text-[11px] font-bold text-gray-400 uppercase shrink-0">History:</span>
+                    <div id="history-bar" class="flex items-center gap-1.5 overflow-x-auto py-0.5">
+                        <!-- Pills injected by JS -->
+                    </div>
+                </div>
+                <button onclick="openWalletModal('withdraw')" class="md:hidden shrink-0 text-[11px] font-bold bg-[#232530] text-gray-200 px-2.5 py-1 rounded-lg border border-[#323544]">
+                    Withdraw
+                </button>
+            </div>
+
+            <!-- Canvas Flight Stage -->
+            <div id="game-stage" class="rounded-2xl border border-[#2a2c38] h-[250px] sm:h-[330px] md:h-[360px] w-full shadow-2xl relative">
+                <canvas id="aviator-canvas" class="w-full h-full block"></canvas>
+
+                <!-- Center Status Overlays -->
+                <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-4 text-center">
+                    
+                    <!-- WAITING STATE -->
+                    <div id="overlay-waiting" class="flex flex-col items-center">
+                        <div class="w-12 h-12 sm:w-14 sm:h-14 mb-2.5 rounded-full bg-red-500/15 border border-red-500/35 flex items-center justify-center animate-pulse">
+                            <svg class="w-7 h-7 text-[#ef4444]" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+                            </svg>
+                        </div>
+                        <h2 class="text-base sm:text-xl font-black tracking-wide text-white uppercase">Next Round Starting Soon</h2>
+                        <p class="text-[11px] text-gray-400 mb-2.5">Place your bets now (Min ₹10)</p>
+                        <div class="w-48 sm:w-64 h-2.5 bg-[#20222b] rounded-full overflow-hidden border border-[#323544]">
+                            <div id="wait-bar" class="h-full bg-gradient-to-r from-[#ef4444] to-amber-400" style="width: 100%;"></div>
+                        </div>
+                        <span id="wait-seconds" class="text-xs font-extrabold text-amber-400 mt-1.5 tabular-nums">5.0s</span>
+                    </div>
+
+                    <!-- FLYING STATE -->
+                    <div id="overlay-flying" class="hidden flex-col items-center">
+                        <div id="live-multiplier" class="text-5xl sm:text-7xl font-black tracking-tight text-white glow-white tabular-nums">
+                            1.00x
+                        </div>
+                    </div>
+
+                    <!-- CRASHED STATE -->
+                    <div id="overlay-crashed" class="hidden flex-col items-center">
+                        <div class="text-lg sm:text-2xl font-extrabold text-[#ef4444] uppercase tracking-wider mb-1">
+                            FLEW AWAY!
+                        </div>
+                        <div id="crash-multiplier" class="text-5xl sm:text-7xl font-black text-[#ef4444] glow-red tabular-nums">
+                            1.00x
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Round ID & Demo Tag -->
+                <div class="absolute top-2.5 left-3 text-[10px] font-semibold text-emerald-400 bg-black/50 px-2.5 py-0.5 rounded-full border border-emerald-500/25">
+                    Live UPI Wallet Mode
+                </div>
+                <div class="absolute bottom-2 right-3 text-[10px] text-gray-500 font-mono">
+                    Round #<span id="round-number">1001</span>
+                </div>
+            </div>
+
+            <!-- Dual Betting Panels (Both starting at ₹10 with - and + buttons) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                
+                <!-- BET PANEL 1 -->
+                <div class="bg-[#16171d] rounded-2xl border border-[#282a36] p-3 sm:p-4 flex flex-col justify-between shadow-lg">
+                    <div class="flex items-center justify-between pb-2.5 mb-2.5 border-b border-[#232530]">
+                        <span class="text-xs font-extrabold uppercase tracking-wider text-gray-200 bg-[#22242f] px-2.5 py-1 rounded-lg">Bet 1</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-gray-400 font-medium">Auto Cash Out</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="auto-check-1" class="sr-only peer">
+                                <div class="w-9 h-5 bg-[#292b37] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                            </label>
+                            <div class="flex items-center bg-[#0f1015] border border-[#2d303e] rounded-lg px-2 py-1 w-20">
+                                <input type="number" id="auto-val-1" value="2.00" step="0.10" min="1.01" max="1000" class="w-full bg-transparent text-xs font-bold text-white text-right focus:outline-none">
+                                <span class="text-xs text-gray-400 ml-0.5">x</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-12 gap-2.5 items-center">
+                        <!-- Bet Stepper (- / +) & Presets -->
+                        <div class="col-span-6 flex flex-col gap-1.5">
+                            <div class="flex items-center justify-between bg-[#0f1015] border border-[#2d303e] rounded-xl p-1">
+                                <button type="button" onclick="changeBetStep(1, -10)" class="w-8 h-8 rounded-lg bg-[#22242f] hover:bg-[#303342] active:scale-95 text-lg font-black text-white flex items-center justify-center transition">−</button>
+                                <div class="flex items-center justify-center flex-1">
+                                    <span class="text-xs font-bold text-gray-400 mr-0.5">₹</span>
+                                    <input type="number" id="bet-amt-1" value="10" min="10" max="50000" class="w-14 bg-transparent text-center font-extrabold text-sm sm:text-base text-white focus:outline-none">
+                                </div>
+                                <button type="button" onclick="changeBetStep(1, 10)" class="w-8 h-8 rounded-lg bg-[#22242f] hover:bg-[#303342] active:scale-95 text-lg font-black text-white flex items-center justify-center transition">+</button>
+                            </div>
+                            <div class="grid grid-cols-4 gap-1">
+                                <button type="button" onclick="setBetPreset(1, 10)" class="bg-[#20222c] hover:bg-[#2c2f3d] text-[11px] font-bold text-gray-300 py-1 rounded-lg transition">₹10</button>
+                                <button type="button" onclick="setBetPreset(1, 50)" class="bg-[#20222c] hover:bg-[#2c2f3d] text-[11px] font-bold text-gray-300 py-1 rounded-lg transition">₹50</button>
+                                <button type="button" onclick="setBetPreset(1, 100)" class="bg-[#20222c] hover:bg-[#2c2f3d] text-[11px] font-bold text-gray-300 py-1 rounded-lg transition">₹100</button>
+                                <button type="button" onclick="setBetPreset(1, 500)" class="bg-[#20222c] hover:bg-[#2c2f3d] text-[11px] font-bold text-gray-300 py-1 rounded-lg transition">₹500</button>
+                            </div>
+                        </div>
+
+                        <!-- Action Button -->
+                        <div class="col-span-6 h-full">
+                            <button type="button" id="btn-panel-1" onclick="onPanelButtonClick(1)" class="w-full h-full min-h-[74px] rounded-2xl btn-bet flex flex-col items-center justify-center text-white transition cursor-pointer">
+                                <span id="btn-main-1" class="text-lg sm:text-xl font-black tracking-wide uppercase">BET</span>
+                                <span id="btn-sub-1" class="text-xs font-bold opacity-95">₹10.00</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BET PANEL 2 -->
+                <div class="bg-[#16171d] rounded-2xl border border-[#282a36] p-3 sm:p-4 flex flex-col justify-between shadow-lg">
+                    <div class="flex items-center justify-between pb-2.5 mb-2.5 border-b border-[#232530]">
+                        <span class="text-xs font-extrabold uppercase tracking-wider text-gray-200 bg-[#22242f] px-2.5 py-1 rounded-lg">Bet 2</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-gray-400 font-medium">Auto Cash Out</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="auto-check-2" class="sr-only peer">
+                                <div class="w-9 h-5 bg-[#292b37] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                            </label>
+                            <div class="flex items-center bg-[#0f1015] border border-[#2d303e] rounded-lg px-2 py-1 w-20">
+                                <input type="number" id="auto-val-2" value="3.00" step="0.10" min="1.01" max="1000" class="w-full bg-transparent text-xs font-bold text-white text-right focus:outline-none">
+                                <span class="text-xs text-gray-400 ml-0.5">x</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-12 gap-2.
