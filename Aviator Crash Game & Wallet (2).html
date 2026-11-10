@@ -1,0 +1,1467 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Aviator Pro - Crash Game & Wallet</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0c10;
+            color: #ffffff;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: #13141a; }
+        ::-webkit-scrollbar-thumb { background: #2d2f3b; border-radius: 99px; }
+
+        /* Game Arena Background */
+        #game-stage {
+            background: radial-gradient(circle at 18% 85%, #241326 0%, #101116 65%, #0b0c10 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Text Glows */
+        .glow-white { text-shadow: 0 0 28px rgba(255, 255, 255, 0.35); }
+        .glow-red { text-shadow: 0 0 32px rgba(239, 68, 68, 0.85); }
+
+        /* History Pills */
+        .pill-blue {
+            background: rgba(56, 189, 248, 0.14);
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.32);
+        }
+        .pill-purple {
+            background: rgba(168, 85, 247, 0.16);
+            color: #c084fc;
+            border: 1px solid rgba(168, 85, 247, 0.35);
+        }
+        .pill-pink {
+            background: rgba(244, 63, 94, 0.2);
+            color: #fb7185;
+            border: 1px solid rgba(244, 63, 94, 0.45);
+        }
+
+        /* Action Buttons */
+        .btn-bet {
+            background: linear-gradient(180deg, #22c55e 0%, #15803d 100%);
+            box-shadow: 0 4px 16px rgba(34, 197, 94, 0.35), inset 0 1px 0 rgba(255,255,255,0.28);
+        }
+        .btn-bet:hover { filter: brightness(1.06); }
+        .btn-bet:active { transform: scale(0.98); }
+
+        .btn-cancel {
+            background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%);
+            box-shadow: 0 4px 16px rgba(239, 68, 68, 0.38), inset 0 1px 0 rgba(255,255,255,0.25);
+        }
+        .btn-cancel:active { transform: scale(0.98); }
+
+        .btn-cashout {
+            background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+            box-shadow: 0 4px 20px rgba(245, 158, 11, 0.45), inset 0 1px 0 rgba(255,255,255,0.35);
+        }
+        .btn-cashout:hover { filter: brightness(1.06); }
+        .btn-cashout:active { transform: scale(0.98); }
+
+        /* Hide number input arrows */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] { -moz-appearance: textfield; }
+
+        /* Toast Animation */
+        @keyframes toastSlide {
+            0% { opacity: 0; transform: translateY(-14px) scale(0.95); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .toast-anim { animation: toastSlide 0.25s ease-out forwards; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between bg-[#0b0c10]">
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2 w-full max-w-sm px-3 pointer-events-none"></div>
+
+    <!-- Top Navigation Header -->
+    <header class="bg-[#16171d] border-b border-[#262833] px-3 py-2.5 flex items-center justify-between sticky top-0 z-40 shadow-md">
+        <!-- Brand Logo -->
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[#ef4444] to-[#991b1b] flex items-center justify-center shadow-lg shadow-red-600/30">
+                <svg class="w-5 h-5 text-white -rotate-12" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+                </svg>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="font-black italic text-xl tracking-tight text-[#ef4444]">AVIATOR</span>
+                <span class="hidden sm:inline-block text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded font-bold">PRO</span>
+            </div>
+        </div>
+
+        <!-- Wallet Balance, Deposit/Withdraw & Audio/Voice Toggles -->
+        <div class="flex items-center gap-1.5 sm:gap-2.5">
+            <!-- Wallet Pill -->
+            <div class="bg-[#0f1015] border border-[#2a2c38] rounded-full pl-3 pr-1.5 py-1 flex items-center gap-2">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:gap-1.5">
+                    <span class="text-[10px] sm:text-xs text-gray-400 font-medium leading-none">Wallet</span>
+                    <span id="balance-display" class="text-xs sm:text-sm font-extrabold text-emerald-400 tabular-nums">₹0.00</span>
+                </div>
+                <button onclick="openWalletModal('deposit')" class="bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-[11px] sm:text-xs px-2.5 py-1 rounded-full transition shadow-sm">
+                    + DEPOSIT
+                </button>
+                <button onclick="openWalletModal('withdraw')" class="hidden md:inline-block bg-[#242631] hover:bg-[#303342] text-gray-200 font-bold text-xs px-2.5 py-1 rounded-full transition">
+                    WITHDRAW
+                </button>
+            </div>
+
+            <!-- Voice Toggle -->
+            <button id="voice-btn" onclick="toggleVoice()" class="h-8 sm:h-9 px-2.5 rounded-full bg-[#21232d] hover:bg-[#2c2f3d] border border-[#323544] flex items-center gap-1.5 text-xs font-bold transition" title="Voice Commentary">
+                <span id="voice-dot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span id="voice-text" class="text-emerald-400 hidden sm:inline">Voice ON</span>
+                <svg class="w-4 h-4 text-gray-200 sm:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+                </svg>
+            </button>
+
+            <!-- Sound Toggle -->
+            <button id="sound-btn" onclick="toggleSound()" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#21232d] hover:bg-[#2c2f3d] border border-[#323544] flex items-center justify-center transition" title="Sound Effects">
+                <svg id="icon-sound-on" class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
+                </svg>
+                <svg id="icon-sound-off" class="w-4 h-4 text-red-400 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Layout Grid -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-3 grid grid-cols-1 lg:grid-cols-12 gap-3">
+        
+        <!-- Left Sidebar: Live Players -->
+        <aside class="lg:col-span-4 xl:col-span-3 order-2 lg:order-1 bg-[#16171d] rounded-2xl border border-[#252732] flex flex-col overflow-hidden h-[320px] lg:h-[calc(100vh-84px)]">
+            <div class="p-3 bg-[#1c1d25] border-b border-[#272935] flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                    <span class="text-xs font-extrabold uppercase tracking-wider text-gray-200">Live Bets</span>
+                </div>
+                <span class="text-xs font-semibold text-gray-400">Online: <strong id="online-count" class="text-white">0</strong></span>
+            </div>
+
+            <div class="grid grid-cols-12 px-3 py-1.5 text-[11px] font-semibold text-gray-400 bg-[#121318] border-b border-[#22242e]">
+                <div class="col-span-5">Player</div>
+                <div class="col-span-3 text-right">Bet (₹)</div>
+                <div class="col-span-2 text-center">Mult</div>
+                <div class="col-span-2 text-right">Win</div>
+            </div>
+
+            <div id="live-bets-container" class="flex-1 overflow-y-auto divide-y divide-[#1f212b] px-1">
+                <!-- Populated by JS -->
+            </div>
+        </aside>
+
+        <!-- Right Main Arena & Betting Controls -->
+        <section class="lg:col-span-8 xl:col-span-9 order-1 lg:order-2 flex flex-col gap-3">
+            
+            <!-- Recent Multipliers History Strip -->
+            <div class="bg-[#16171d] rounded-xl border border-[#252732] px-3 py-2 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 overflow-hidden flex-1">
+                    <span class="text-[11px] font-bold text-gray-400 uppercase shrink-0">History:</span>
+                    <div id="history-bar" class="flex items-center gap-1.5 overflow-x-auto py-0.5">
+                        <!-- Pills injected by JS -->
+                    </div>
+                </div>
+                <button onclick="openWalletModal('withdraw')" class="md:hidden shrink-0 text-[11px] font-bold bg-[#232530] text-gray-200 px-2.5 py-1 rounded-lg border border-[#323544]">
+                    Withdraw
+                </button>
+            </div>
+
+            <!-- Canvas Flight Stage -->
+            <div id="game-stage" class="rounded-2xl border border-[#2a2c38] h-[250px] sm:h-[330px] md:h-[360px] w-full shadow-2xl relative">
+                <canvas id="aviator-canvas" class="w-full h-full block"></canvas>
+
+                <!-- Center Status Overlays -->
+                <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-4 text-center">
+                    
+                    <!-- WAITING STATE -->
+                    <div id="overlay-waiting" class="flex flex-col items-center">
+                        <div class="w-12 h-12 sm:w-14 sm:h-14 mb-2.5 rounded-full bg-red-500/15 border border-red-500/35 flex items-center justify-center animate-pulse">
+                            <svg class="w-7 h-7 text-[#ef4444]" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+                            </svg>
+                        </div>
+                        <h2 class="text-base sm:text-xl font-black tracking-wide text-white uppercase">Next Round Starting Soon</h2>
+                        <p class="text-[11px] text-gray-400 mb-2.5">Place your bets now (Min ₹10)</p>
+                        <div class="w-48 sm:w-64 h-2.5 bg-[#20222b] rounded-full overflow-hidden border border-[#323544]">
+                            <div id="wait-bar" class="h-full bg-gradient-to-r from-[#ef4444] to-amber-400" style="width: 100%;"></div>
+                        </div>
+                        <span id="wait-seconds" class="text-xs font-extrabold text-amber-400 mt-1.5 tabular-nums">5.0s</span>
+                    </div>
+
+                    <!-- FLYING STATE -->
+                    <div id="overlay-flying" class="hidden flex-col items-center">
+                        <div id="live-multiplier" class="text-5xl sm:text-7xl font-black tracking-tight text-white glow-white tabular-nums">
+                            1.00x
+                        </div>
+                    </div>
+
+                    <!-- CRASHED STATE -->
+                    <div id="overlay-crashed" class="hidden flex-col items-center">
+                        <div class="text-lg sm:text-2xl font-extrabold text-[#ef4444] uppercase tracking-wider mb-1">
+                            FLEW AWAY!
+                        </div>
+                        <div id="crash-multiplier" class="text-5xl sm:text-7xl font-black text-[#ef4444] glow-red tabular-nums">
+                            1.00x
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Round ID & Demo Tag -->
+                <div class="absolute top-2.5 left-3 text-[10px] font-semibold text-emerald-400 bg-black/50 px-2.5 py-0.5 rounded-full border border-emerald-500/25">
+                    Live UPI Wallet Mode
+                </div>
+                <div class="absolute bottom-2 right-3 text-[10px] text-gray-500 font-mono">
+                    Round #<span id="round-number">1001</span>
+                </div>
+            </div>
+
+            <!-- Dual Betting Panels (Both starting at ₹10 with - and + buttons) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                
+                <!-- BET PANEL 1 -->
+                <div class="bg-[#16171d] rounded-2xl border border-[#282a36] p-3 sm:p-4 flex flex-col justify-between shadow-lg">
+                    <div class="flex items-center justify-between pb-2.5 mb-2.5 border-b border-[#232530]">
+                        <span class="text-xs font-extrabold uppercase tracking-wider text-gray-200 bg-[#22242f] px-2.5 py-1 rounded-lg">Bet 1</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-gray-400 font-medium">Auto Cash Out</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="auto-check-1" class="sr-only peer">
+                                <div class="w-9 h-5 bg-[#292b37] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                            </label>
+                            <div class="flex items-center bg-[#0f1015] border border-[#2d303e] rounded-lg px-2 py-1 w-20">
+                                <input type="number" id="auto-val-1" value="2.00" step="0.10" min="1.01" max="1000" class="w-full bg-transparent text-xs font-bold text-white text-right focus:outline-none">
+                                <span class="text-xs text-gray-400 ml-0.5">x</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-12 gap-2.5 items-center">
+                        <!-- Bet Stepper (- / +) & Presets -->
+                        <div class="col-span-6 flex flex-col gap-1.5">
+                            <div class="flex items-center justify-between bg-[#0f1015] border border-[#2d303e] rounded-xl p-1">
+                                <button type="button" onclick="changeBetStep(1, -10)" class="w-8 h-8 rounded-lg bg-[#22242f] hover:bg-[#303342] active:scale-95 text-lg font-black text-white flex items-center justify-center transition">−</button>
+                                <div class="flex items-center justify-center flex-1">
+                                    <span class="text-xs font-bold text-gray-400 mr-0.5">₹</span>
+                                    <input type="number" id="bet-amt-1" value="10" min="10" max="50000" class="w-14 bg-transparent text-center font-extrabold text-sm sm:text-base text-white focus:outline-none">
+                                </div>
+                                <button type="button" onclick="changeBetStep(1, 10)" class="w-8 h-8 rounded-lg bg-[#22242f] hover:bg-[#303342] active:scale-95 text-lg font-black text-white flex items-center justify-center transition">+</button>
+                            </div>
+                            <div class="grid grid-cols-4 gap-1">
+                                <button type="button" onclick="setBetPreset(1, 10)" class="bg-[#20222c] hover:bg-[#2c2f3d] text-[11px] font-bold text-gray-300 py-1 rounded-lg transition">₹10</button>
+                                <button type="button" onclick="setBetPreset(1, 50)" class="bg-[#20222c] hover:bg-[#2c2f3d] text-[11px] font-bold text-gray-300 py-1 rounded-lg transition">₹50</button>
+                                <button type="button" onclick="setBetPreset(1, 100)" class="bg-[#20222c] hover:bg-[#2c2f3d] text-[11px] font-bold text-gray-300 py-1 rounded-lg transition">₹100</button>
+                                <button type="button" onclick="setBetPreset(1, 500)" class="bg-[#20222c] hover:bg-[#2c2f3d] text-[11px] font-bold text-gray-300 py-1 rounded-lg transition">₹500</button>
+                            </div>
+                        </div>
+
+                        <!-- Action Button -->
+                        <div class="col-span-6 h-full">
+                            <button type="button" id="btn-panel-1" onclick="onPanelButtonClick(1)" class="w-full h-full min-h-[74px] rounded-2xl btn-bet flex flex-col items-center justify-center text-white transition cursor-pointer">
+                                <span id="btn-main-1" class="text-lg sm:text-xl font-black tracking-wide uppercase">BET</span>
+                                <span id="btn-sub-1" class="text-xs font-bold opacity-95">₹10.00</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BET PANEL 2 -->
+                <div class="bg-[#16171d] rounded-2xl border border-[#282a36] p-3 sm:p-4 flex flex-col justify-between shadow-lg">
+                    <div class="flex items-center justify-between pb-2.5 mb-2.5 border-b border-[#232530]">
+                        <span class="text-xs font-extrabold uppercase tracking-wider text-gray-200 bg-[#22242f] px-2.5 py-1 rounded-lg">Bet 2</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-gray-400 font-medium">Auto Cash Out</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="auto-check-2" class="sr-only peer">
+                                <div class="w-9 h-5 bg-[#292b37] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                            </label>
+                            <div class="flex items-center bg-[#0f1015] border border-[#2d303e] rounded-lg px-2 py-1 w-20">
+                                <input type="number" id="auto-val-2" value="3.00" step="0.10" min="1.01" max="1000" class="w-full bg-transparent text-xs font-bold text-white text-right focus:outline-none">
+                                <span class="text-xs text-gray-400 ml-0.5">x</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-12 gap-2.5 items-center">
+                        <!-- Bet Stepper (- / +) & Presets -->
+                        <div class="col-span-6 flex flex-col gap-1.5">
+                            <div class="flex items-center justify-between bg-[#0f1015] border border-[#2d303e] rounded-xl p-1">
+                                <button type="button" onclick="changeBetStep(2, -10)" class="w-8 h-8 rounded-lg bg-[#22242f] hover:bg-[#303342] active:scale-95 text-lg font-black text-white flex items-center justify-center transition">−</button>
+                                <div class="flex items-center justify-center flex-1">
+                                    <span class="text-xs font-bold text-gray-400 mr-0.5">₹</span>
+                                    <input type="number" id="bet-amt-2" value="10" min="10" max="50000" class="w-14 bg-transparent text-center font-extrabold text-sm sm:text-base text-white focus:outline-none">
+                                </div>
+                                <button type="button" onclick="changeBetStep(2, 10)" class="w-8 h-8 rounded-lg bg-[#22242f] hover:bg-[#303342] active:scale-95 text-lg font-black text-white flex items-center justify-center transition">+</button>
+                            </div>
+                            <div class="grid grid-cols-4 gap-1">
+                                <button type="button" onclick="setBetPreset(2, 10)" class="bg-[#20222c] hover:bg-[#2c2f3d] text-[11px] font-bold text-gray-300 py-1 rounded-lg transition">₹10</button>
+                                <button type="button" onclick="setBetPreset(2, 50)" class="bg-[#20222c] hover:bg-[#2c2f3d] text-[11px] font-bold text-gray-300 py-1 rounded-lg transition">₹50</button>
+                                <button type="button" onclick="setBetPreset(2, 100)" class="bg-[#20222c] hover:bg-[#2c2f3d] text-[11px] font-bold text-gray-300 py-1 rounded-lg transition">₹100</button>
+                                <button type="button" onclick="setBetPreset(2, 500)" class="bg-[#20222c] hover:bg-[#2c2f3d] text-[11px] font-bold text-gray-300 py-1 rounded-lg transition">₹500</button>
+                            </div>
+                        </div>
+
+                        <!-- Action Button -->
+                        <div class="col-span-6 h-full">
+                            <button type="button" id="btn-panel-2" onclick="onPanelButtonClick(2)" class="w-full h-full min-h-[74px] rounded-2xl btn-bet flex flex-col items-center justify-center text-white transition cursor-pointer">
+                                <span id="btn-main-2" class="text-lg sm:text-xl font-black tracking-wide uppercase">BET</span>
+                                <span id="btn-sub-2" class="text-xs font-bold opacity-95">₹10.00</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <!-- ========================================== -->
+    <!-- PAYMENT & WALLET MODAL (DEPOSIT/WITHDRAW)  -->
+    <!-- ========================================== -->
+    <div id="wallet-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-3 sm:p-4">
+        <div class="bg-[#181920] border border-[#2d303e] rounded-2xl max-w-md w-full overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
+            
+            <!-- Modal Header -->
+            <div class="px-4 py-3 bg-[#1e2029] border-b border-[#2b2e3c] flex items-center justify-between">
+                <div>
+                    <h3 class="text-base font-extrabold text-white flex items-center gap-2">
+                        <span>Instant UPI Cashier</span>
+                        <span class="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">Auto QR</span>
+                    </h3>
+                    <p class="text-[11px] text-gray-400">Available Balance: <strong id="modal-balance" class="text-emerald-400">₹0.00</strong></p>
+                </div>
+                <button onclick="closeWalletModal()" class="w-8 h-8 rounded-full bg-[#282a36] hover:bg-[#343746] text-gray-300 flex items-center justify-center text-lg font-bold">&times;</button>
+            </div>
+
+            <!-- Tabs: Deposit | Withdraw | History -->
+            <div class="grid grid-cols-3 bg-[#121318] p-1 border-b border-[#262834]">
+                <button id="tab-deposit" onclick="switchWalletTab('deposit')" class="py-2 text-xs font-extrabold rounded-xl bg-emerald-500 text-black transition">DEPOSIT</button>
+                <button id="tab-withdraw" onclick="switchWalletTab('withdraw')" class="py-2 text-xs font-extrabold rounded-xl text-gray-400 hover:text-white transition">WITHDRAW</button>
+                <button id="tab-history" onclick="switchWalletTab('history')" class="py-2 text-xs font-extrabold rounded-xl text-gray-400 hover:text-white transition">HISTORY</button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-4 overflow-y-auto space-y-3.5">
+                
+                <!-- DEPOSIT SECTION -->
+                <div id="view-deposit" class="space-y-3">
+                    <!-- Amount Input & Quick Presets -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="text-[11px] font-bold text-gray-400 uppercase">Enter Deposit Amount (Min ₹10)</label>
+                            <span class="text-[11px] font-bold text-emerald-400">100% Instant Credit</span>
+                        </div>
+                        <div class="flex items-center bg-[#0f1015] border border-emerald-500/40 rounded-xl px-3 py-2 focus-within:border-emerald-400">
+                            <span class="text-lg font-black text-emerald-400 mr-1.5">₹</span>
+                            <input type="number" id="deposit-amount" value="100" min="10" max="100000" oninput="onDepositAmountChange()" class="w-full bg-transparent text-lg font-black text-white focus:outline-none">
+                            <span class="text-[11px] font-bold text-gray-400">INR</span>
+                        </div>
+                        <div class="grid grid-cols-5 gap-1.5 mt-2">
+                            <button type="button" onclick="setDepositAmt(50)" class="py-1.5 rounded-lg bg-[#232531] hover:bg-[#2f3242] text-xs font-bold text-gray-200 transition">₹50</button>
+                            <button type="button" onclick="setDepositAmt(100)" class="py-1.5 rounded-lg bg-[#232531] hover:bg-[#2f3242] text-xs font-bold text-gray-200 transition">₹100</button>
+                            <button type="button" onclick="setDepositAmt(200)" class="py-1.5 rounded-lg bg-[#232531] hover:bg-[#2f3242] text-xs font-bold text-gray-200 transition">₹200</button>
+                            <button type="button" onclick="setDepositAmt(500)" class="py-1.5 rounded-lg bg-[#232531] hover:bg-[#2f3242] text-xs font-bold text-gray-200 transition">₹500</button>
+                            <button type="button" onclick="setDepositAmt(1000)" class="py-1.5 rounded-lg bg-[#232531] hover:bg-[#2f3242] text-xs font-bold text-gray-200 transition">₹1000</button>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic QR Code & UPI ID Card -->
+                    <div class="bg-[#111217] border border-[#282b38] rounded-2xl p-3 flex flex-col items-center text-center">
+                        <div class="text-xs font-extrabold text-white mb-1">
+                            Scan & Pay Exact <span id="qr-amount-badge" class="text-emerald-400">₹100.00</span>
+                        </div>
+                        <div class="bg-white p-2.5 rounded-xl shadow-lg my-1.5 flex items-center justify-center min-h-[148px] min-w-[148px]">
+                            <div id="dynamic-qr-box" class="flex items-center justify-center"></div>
+                        </div>
+                        <div class="w-full flex items-center justify-between bg-[#1b1d26] px-3 py-1.5 rounded-xl border border-[#2e3140] mt-1.5">
+                            <div class="text-left">
+                                <div class="text-[9px] uppercase text-gray-400 font-bold">Merchant UPI ID</div>
+                                <div class="font-mono text-xs font-extrabold text-emerald-400 select-all">anpadarshanp@fam</div>
+                            </div>
+                            <button type="button" onclick="copyUpiId()" class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-extrabold px-2.5 py-1 rounded-lg transition">
+                                COPY UPI
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Direct UPI App Payment Buttons (Paytm, Google Pay, PhonePe) -->
+                    <div>
+                        <div class="text-[11px] font-bold text-gray-400 uppercase mb-1.5 text-center">Or Pay Directly With UPI App</div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <!-- Paytm -->
+                            <a id="link-paytm" href="#" onclick="handleUpiAppClick(event, 'Paytm')" class="bg-[#00baf2]/15 hover:bg-[#00baf2]/25 border border-[#00baf2]/50 rounded-xl py-2.5 px-2 flex flex-col items-center justify-center gap-1 transition active:scale-95">
+                                <span class="text-xs font-black tracking-tight text-[#38bdf8]">Pay<span class="text-white">tm</span></span>
+                                <span id="paytm-amt-tag" class="text-[10px] font-bold text-gray-300">Pay ₹100</span>
+                            </a>
+                            <!-- Google Pay -->
+                            <a id="link-gpay" href="#" onclick="handleUpiAppClick(event, 'Google Pay')" class="bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/50 rounded-xl py-2.5 px-2 flex flex-col items-center justify-center gap-1 transition active:scale-95">
+                                <span class="text-xs font-black tracking-tight text-white">G <span class="text-emerald-400">Pay</span></span>
+                                <span id="gpay-amt-tag" class="text-[10px] font-bold text-gray-300">Pay ₹100</span>
+                            </a>
+                            <!-- PhonePe -->
+                            <a id="link-phonepe" href="#" onclick="handleUpiAppClick(event, 'PhonePe')" class="bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/50 rounded-xl py-2.5 px-2 flex flex-col items-center justify-center gap-1 transition active:scale-95">
+                                <span class="text-xs font-black tracking-tight text-purple-300">PhonePe</span>
+                                <span id="phonepe-amt-tag" class="text-[10px] font-bold text-gray-300">Pay ₹100</span>
+                            </a>
+                        </div>
+                        <div class="text-center mt-1.5">
+                            <a id="link-any-upi" href="#" onclick="handleUpiAppClick(event, 'UPI App')" class="text-[11px] font-semibold text-gray-400 hover:text-emerald-400 underline">
+                                Open in Any Other UPI App (BHIM / Amazon Pay)
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 12-Digit UTR Verification Box -->
+                    <div id="utr-verify-box" class="bg-[#121319] border border-[#2d303e] rounded-xl p-3 space-y-2 transition">
+                        <div class="flex items-center justify-between">
+                            <label class="text-[11px] font-extrabold text-amber-300 uppercase">Step 2: Enter 12-Digit UTR / Ref No.</label>
+                            <span class="text-[10px] text-gray-400">Required after payment</span>
+                        </div>
+                        <input type="text" id="upi-utr-input" maxlength="12" inputmode="numeric" placeholder="Enter 12-digit UPI UTR (e.g. 431298765432)" class="w-full bg-[#0b0c10] border border-[#323646] focus:border-emerald-400 rounded-lg px-3 py-2 text-xs font-mono font-bold text-white tracking-wider focus:outline-none">
+                        <button type="button" id="btn-submit-deposit" onclick="processDeposit()" class="w-full py-2.5 rounded-xl btn-bet text-xs sm:text-sm font-black uppercase tracking-wider text-white flex items-center justify-center gap-1.5">
+                            <span id="btn-deposit-label">VERIFY UTR & ADD ₹100.00</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- WITHDRAW SECTION -->
+                <div id="view-withdraw" class="hidden space-y-3.5">
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-400 uppercase mb-1">Withdraw Amount (Min ₹100)</label>
+                        <div class="flex items-center bg-[#0f1015] border border-[#2e3140] rounded-xl px-3 py-2">
+                            <span class="text-base font-black text-amber-400 mr-1.5">₹</span>
+                            <input type="number" id="withdraw-amount" value="200" min="100" class="w-full bg-transparent text-base font-extrabold text-white focus:outline-none">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-400 uppercase mb-1">Your UPI ID or Bank Account</label>
+                        <input type="text" id="withdraw-destination" placeholder="e.g. rahul@okicici or A/C Number" class="w-full bg-[#0f1015] border border-[#2e3140] rounded-xl px-3 py-2.5 text-xs font-semibold text-white focus:outline-none">
+                    </div>
+
+                    <div class="bg-amber-500/10 border border-amber-500/25 rounded-xl p-2.5 text-[11px] text-amber-200">
+                        Instant simulated payout: Funds will be deducted from your practice wallet and logged in history.
+                    </div>
+
+                    <button type="button" id="btn-submit-withdraw" onclick="processWithdraw()" class="w-full py-3 rounded-xl btn-cashout text-sm font-black uppercase tracking-wider text-white">
+                        WITHDRAW FUNDS
+                    </button>
+                </div>
+
+                <!-- TRANSACTION HISTORY SECTION -->
+                <div id="view-history" class="hidden">
+                    <div id="tx-history-list" class="space-y-2 max-h-64 overflow-y-auto pr-1">
+                        <!-- Transactions rendered by JS -->
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MAIN JAVASCRIPT ENGINE                     -->
+    <!-- ========================================== -->
+    <script>
+        // ------------------------------------------
+        // 1. AUDIO & VOICE ENGINE (SAFE FALLBACKS)
+        // ------------------------------------------
+        const AudioEngine = {
+            soundEnabled: true,
+            voiceEnabled: true,
+            ctx: null,
+            engineOsc: null,
+            engineGain: null,
+
+            initCtx() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) this.ctx = new AudioCtx();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume().catch(() => {});
+                }
+            },
+
+            playClick() {
+                if (!this.soundEnabled) return;
+                try {
+                    this.initCtx();
+                    if (!this.ctx) return;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(520, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.08);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.08);
+                } catch (e) {}
+            },
+
+            startEngine() {
+                if (!this.soundEnabled) return;
+                try {
+                    this.initCtx();
+                    if (!this.ctx) return;
+                    this.stopEngine();
+                    this.engineOsc = this.ctx.createOscillator();
+                    this.engineGain = this.ctx.createGain();
+                    this.engineOsc.type = 'sawtooth';
+                    this.engineOsc.frequency.setValueAtTime(65, this.ctx.currentTime);
+                    this.engineGain.gain.setValueAtTime(0.03, this.ctx.currentTime);
+                    this.engineOsc.connect(this.engineGain);
+                    this.engineGain.connect(this.ctx.destination);
+                    this.engineOsc.start();
+                } catch (e) {}
+            },
+
+            updateEngine(mult) {
+                try {
+                    if (this.engineOsc && this.ctx) {
+                        const freq = Math.min(240, 65 + (mult - 1) * 18);
+                        this.engineOsc.frequency.setTargetAtTime(freq, this.ctx.currentTime, 0.05);
+                    }
+                } catch (e) {}
+            },
+
+            stopEngine() {
+                try {
+                    if (this.engineOsc) {
+                        this.engineOsc.stop();
+                        this.engineOsc.disconnect();
+                        this.engineOsc = null;
+                    }
+                } catch (e) {}
+            },
+
+            playWin() {
+                if (!this.soundEnabled) return;
+                try {
+                    this.initCtx();
+                    if (!this.ctx) return;
+                    [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(freq, this.ctx.currentTime + idx * 0.06);
+                        gain.gain.setValueAtTime(0.12, this.ctx.currentTime + idx * 0.06);
+                        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + idx * 0.06 + 0.25);
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(this.ctx.currentTime + idx * 0.06);
+                        osc.stop(this.ctx.currentTime + idx * 0.06 + 0.25);
+                    });
+                } catch (e) {}
+            },
+
+            playCrash() {
+                this.stopEngine();
+                if (!this.soundEnabled) return;
+                try {
+                    this.initCtx();
+                    if (!this.ctx) return;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(140, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(35, this.ctx.currentTime + 0.4);
+                    gain.gain.setValueAtTime(0.14, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.4);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.4);
+                } catch (e) {}
+            },
+
+            speak(text) {
+                if (!this.voiceEnabled) return;
+                try {
+                    if ('speechSynthesis' in window) {
+                        window.speechSynthesis.cancel();
+                        const u = new SpeechSynthesisUtterance(text);
+                        u.rate = 1.08;
+                        u.pitch = 1.05;
+                        window.speechSynthesis.speak(u);
+                    }
+                } catch (e) {}
+            }
+        };
+
+        function toggleVoice() {
+            AudioEngine.voiceEnabled = !AudioEngine.voiceEnabled;
+            const dot = document.getElementById('voice-dot');
+            const txt = document.getElementById('voice-text');
+            if (AudioEngine.voiceEnabled) {
+                dot.className = 'w-2 h-2 rounded-full bg-emerald-400';
+                txt.textContent = 'Voice ON';
+                txt.className = 'text-emerald-400 hidden sm:inline';
+                AudioEngine.speak('Voice enabled');
+            } else {
+                dot.className = 'w-2 h-2 rounded-full bg-red-400';
+                txt.textContent = 'Voice OFF';
+                txt.className = 'text-red-400 hidden sm:inline';
+            }
+        }
+
+        function toggleSound() {
+            AudioEngine.soundEnabled = !AudioEngine.soundEnabled;
+            document.getElementById('icon-sound-on').classList.toggle('hidden', !AudioEngine.soundEnabled);
+            document.getElementById('icon-sound-off').classList.toggle('hidden', AudioEngine.soundEnabled);
+            if (!AudioEngine.soundEnabled) AudioEngine.stopEngine();
+        }
+
+        // ------------------------------------------
+        // 2. GAME STATE & WALLET DATA (STARTS AT ₹0)
+        // ------------------------------------------
+        const MERCHANT_UPI_ID = 'anpadarshanp@fam';
+        const MERCHANT_NAME = 'Aviator Game';
+
+        const state = {
+            balance: 0.00,
+            roundId: 1001,
+            phase: 'WAITING', // 'WAITING' | 'FLYING' | 'CRASHED'
+            multiplier: 1.00,
+            crashPoint: 2.00,
+            phaseStartTime: Date.now(),
+            waitDuration: 3500, // 3.5 seconds countdown
+            crashDuration: 2400, // 2.4 seconds crashed display
+            history: [1.84, 3.45, 11.20, 1.08, 2.30, 1.52, 6.75, 1.19, 18.40, 2.05],
+            panels: {
+                1: { status: 'IDLE', amount: 10 }, // 'IDLE' | 'QUEUED' | 'ACTIVE' | 'CASHED'
+                2: { status: 'IDLE', amount: 10 }
+            },
+            bots: [],
+            transactions: [],
+            usedUtrs: new Set()
+        };
+
+        function formatINR(num) {
+            return '₹' + Number(num).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function updateWalletUI() {
+            const formatted = formatINR(state.balance);
+            document.getElementById('balance-display').textContent = formatted;
+            document.getElementById('modal-balance').textContent = formatted;
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const el = document.createElement('div');
+            const colors = {
+                success: 'bg-emerald-950/95 border-emerald-500 text-emerald-200',
+                error: 'bg-red-950/95 border-red-500 text-red-200',
+                info: 'bg-[#1e202b]/95 border-[#3b3f54] text-white'
+            };
+            el.className = `toast-anim px-4 py-2.5 rounded-xl border shadow-xl text-xs font-bold text-center ${colors[type] || colors.info}`;
+            el.textContent = message;
+            container.appendChild(el);
+            setTimeout(() => {
+                el.style.opacity = '0';
+                el.style.transition = 'opacity 0.25s';
+                setTimeout(() => el.remove(), 250);
+            }, 2600);
+        }
+
+        // ------------------------------------------
+        // 3. DUAL BETTING CONTROLS (- / + & CASHOUT)
+        // ------------------------------------------
+        function getPanelBetAmount(id) {
+            const input = document.getElementById(`bet-amt-${id}`);
+            let val = parseFloat(input.value);
+            if (isNaN(val) || val < 10) val = 10;
+            if (val > 50000) val = 50000;
+            return Math.round(val * 100) / 100;
+        }
+
+        function changeBetStep(id, delta) {
+            AudioEngine.playClick();
+            const p = state.panels[id];
+            if (p.status !== 'IDLE') return;
+            const input = document.getElementById(`bet-amt-${id}`);
+            let current = parseFloat(input.value) || 10;
+            let next = Math.max(10, Math.min(50000, current + delta));
+            input.value = next;
+            p.amount = next;
+            refreshPanelButton(id);
+        }
+
+        function setBetPreset(id, amt) {
+            AudioEngine.playClick();
+            const p = state.panels[id];
+            if (p.status !== 'IDLE') return;
+            document.getElementById(`bet-amt-${id}`).value = amt;
+            p.amount = amt;
+            refreshPanelButton(id);
+        }
+
+        function refreshPanelButton(id) {
+            const p = state.panels[id];
+            const btn = document.getElementById(`btn-panel-${id}`);
+            const mainTxt = document.getElementById(`btn-main-${id}`);
+            const subTxt = document.getElementById(`btn-sub-${id}`);
+            const amt = p.status === 'IDLE' ? getPanelBetAmount(id) : p.amount;
+
+            btn.classList.remove('btn-bet', 'btn-cancel', 'btn-cashout');
+
+            if (p.status === 'IDLE') {
+                btn.classList.add('btn-bet');
+                mainTxt.textContent = 'BET';
+                subTxt.textContent = formatINR(amt);
+            } else if (p.status === 'QUEUED') {
+                btn.classList.add('btn-cancel');
+                mainTxt.textContent = 'CANCEL';
+                subTxt.textContent = state.phase === 'WAITING' ? 'Bet Placed' : 'Waiting Next Round';
+            } else if (p.status === 'ACTIVE') {
+                btn.classList.add('btn-cashout');
+                const potentialWin = p.amount * state.multiplier;
+                mainTxt.textContent = 'CASH OUT';
+                subTxt.textContent = formatINR(potentialWin);
+            } else if (p.status === 'CASHED') {
+                btn.classList.add('btn-bet');
+                mainTxt.textContent = 'WON!';
+                subTxt.textContent = 'Next Round Soon';
+            }
+        }
+
+        function onPanelButtonClick(id) {
+            AudioEngine.initCtx();
+            const p = state.panels[id];
+
+            if (p.status === 'IDLE') {
+                const amt = getPanelBetAmount(id);
+                if (state.balance < amt) {
+                    AudioEngine.playClick();
+                    showToast('Insufficient balance! Please deposit funds first.', 'error');
+                    openWalletModal('deposit');
+                    return;
+                }
+                state.balance = Math.round((state.balance - amt) * 100) / 100;
+                updateWalletUI();
+                p.amount = amt;
+
+                if (state.phase === 'WAITING') {
+                    p.status = 'ACTIVE';
+                    addUserToLiveList(id, amt);
+                    showToast(`Bet ${id} placed: ${formatINR(amt)}`, 'success');
+                } else {
+                    p.status = 'QUEUED';
+                    showToast(`Bet ${id} queued for next round`, 'info');
+                }
+                AudioEngine.playClick();
+                refreshPanelButton(id);
+            } else if (p.status === 'QUEUED') {
+                state.balance = Math.round((state.balance + p.amount) * 100) / 100;
+                updateWalletUI();
+                p.status = 'IDLE';
+                AudioEngine.playClick();
+                showToast(`Bet ${id} cancelled & refunded`, 'info');
+                refreshPanelButton(id);
+            } else if (p.status === 'ACTIVE' && state.phase === 'FLYING') {
+                cashOutPanel(id);
+            }
+        }
+
+        function cashOutPanel(id) {
+            const p = state.panels[id];
+            if (p.status !== 'ACTIVE' || state.phase !== 'FLYING') return;
+
+            const cashMult = state.multiplier;
+            const winAmt = Math.round(p.amount * cashMult * 100) / 100;
+            state.balance = Math.round((state.balance + winAmt) * 100) / 100;
+            updateWalletUI();
+
+            p.status = 'CASHED';
+            markUserWonInLiveList(id, cashMult, winAmt);
+            refreshPanelButton(id);
+
+            AudioEngine.playWin();
+            AudioEngine.speak(`Safe landing! Cashed out at ${cashMult.toFixed(2)} x`);
+            showToast(`Won ${formatINR(winAmt)} at ${cashMult.toFixed(2)}x!`, 'success');
+        }
+
+        // ------------------------------------------
+        // 4. PAYMENT WALLET SYSTEM (LIVE QR & UPI)
+        // ------------------------------------------
+        let qrInstance = null;
+
+        function getValidDepositAmount() {
+            const raw = parseFloat(document.getElementById('deposit-amount').value);
+            if (isNaN(raw) || raw < 1) return 0;
+            return Math.min(100000, Math.round(raw * 100) / 100);
+        }
+
+        function updateDynamicPaymentLinksAndQR() {
+            const amt = getValidDepositAmount();
+            const displayAmt = amt > 0 ? amt : 10;
+            const amtStr = displayAmt.toFixed(2);
+            const shortAmt = Number.isInteger(displayAmt) ? displayAmt.toString() : amtStr;
+
+            // Update UI amount badges & buttons
+            document.getElementById('qr-amount-badge').textContent = formatINR(displayAmt);
+            document.getElementById('paytm-amt-tag').textContent = `Pay ₹${shortAmt}`;
+            document.getElementById('gpay-amt-tag').textContent = `Pay ₹${shortAmt}`;
+            document.getElementById('phonepe-amt-tag').textContent = `Pay ₹${shortAmt}`;
+            document.getElementById('btn-deposit-label').textContent = `VERIFY UTR & ADD ${formatINR(displayAmt)}`;
+
+            // Build exact UPI payment URIs with user's exact entered amount
+            const baseQuery = `pa=${encodeURIComponent(MERCHANT_UPI_ID)}&pn=${encodeURIComponent(MERCHANT_NAME)}&am=${amtStr}&cu=INR&tn=${encodeURIComponent('Aviator Deposit ' + shortAmt)}`;
+            const standardUpiUri = `upi://pay?${baseQuery}`;
+            const paytmUri = `paytmmp://pay?${baseQuery}`;
+            const gpayUri = `tez://upi/pay?${baseQuery}`;
+            const phonepeUri = `phonepe://pay?${baseQuery}`;
+
+            document.getElementById('link-paytm').href = paytmUri;
+            document.getElementById('link-gpay').href = gpayUri;
+            document.getElementById('link-phonepe').href = phonepeUri;
+            document.getElementById('link-any-upi').href = standardUpiUri;
+
+            // Generate crisp scannable QR code for the exact amount
+            const qrContainer = document.getElementById('dynamic-qr-box');
+            qrContainer.innerHTML = '';
+            if (typeof QRCode !== 'undefined') {
+                qrInstance = new QRCode(qrContainer, {
+                    text: standardUpiUri,
+                    width: 136,
+                    height: 136,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+            } else {
+                // Fallback QR image API if offline/blocked
+                const img = document.createElement('img');
+                img.src = `https://api.qrserver.com/v1/create-qr-code/?size=136x136&data=${encodeURIComponent(standardUpiUri)}`;
+                img.alt = 'UPI QR Code';
+                img.className = 'w-[136px] h-[136px]';
+                qrContainer.appendChild(img);
+            }
+        }
+
+        function onDepositAmountChange() {
+            updateDynamicPaymentLinksAndQR();
+        }
+
+        function handleUpiAppClick(event, appName) {
+            const amt = getValidDepositAmount();
+            if (amt < 10) {
+                event.preventDefault();
+                showToast('Minimum deposit amount is ₹10', 'error');
+                return;
+            }
+            AudioEngine.playClick();
+            showToast(`Opening ${appName} for ${formatINR(amt)}... Enter UTR after payment.`, 'info');
+
+            // Highlight UTR input box so user knows where to enter UTR after paying
+            const utrBox = document.getElementById('utr-verify-box');
+            utrBox.classList.add('border-emerald-400', 'ring-2', 'ring-emerald-500/30');
+            setTimeout(() => {
+                utrBox.classList.remove('border-emerald-400', 'ring-2', 'ring-emerald-500/30');
+            }, 3000);
+        }
+
+        function openWalletModal(tab = 'deposit') {
+            AudioEngine.playClick();
+            const modal = document.getElementById('wallet-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            updateWalletUI();
+            switchWalletTab(tab);
+            if (tab === 'deposit') {
+                updateDynamicPaymentLinksAndQR();
+            }
+        }
+
+        function closeWalletModal() {
+            const modal = document.getElementById('wallet-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function switchWalletTab(tab) {
+            ['deposit', 'withdraw', 'history'].forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                const view = document.getElementById(`view-${t}`);
+                if (t === tab) {
+                    btn.className = 'py-2 text-xs font-extrabold rounded-xl bg-emerald-500 text-black transition';
+                    view.classList.remove('hidden');
+                } else {
+                    btn.className = 'py-2 text-xs font-extrabold rounded-xl text-gray-400 hover:text-white transition';
+                    view.classList.add('hidden');
+                }
+            });
+            if (tab === 'deposit') updateDynamicPaymentLinksAndQR();
+            if (tab === 'history') renderTransactionHistory();
+        }
+
+        function setDepositAmt(amt) {
+            AudioEngine.playClick();
+            document.getElementById('deposit-amount').value = amt;
+            updateDynamicPaymentLinksAndQR();
+        }
+
+        function copyUpiId() {
+            try {
+                const temp = document.createElement('input');
+                temp.value = MERCHANT_UPI_ID;
+                document.body.appendChild(temp);
+                temp.select();
+                document.execCommand('copy');
+                document.body.removeChild(temp);
+                showToast(`UPI ID copied: ${MERCHANT_UPI_ID}`, 'success');
+            } catch (e) {
+                showToast(`UPI ID: ${MERCHANT_UPI_ID}`, 'info');
+            }
+        }
+
+        function processDeposit() {
+            const amt = getValidDepositAmount();
+            const utrInput = document.getElementById('upi-utr-input');
+            const utr = utrInput.value.trim();
+
+            if (amt < 10) {
+                showToast('Minimum deposit amount is ₹10', 'error');
+                return;
+            }
+            if (!/^\d{12}$/.test(utr)) {
+                showToast('Please enter a valid 12-digit UPI UTR number!', 'error');
+                utrInput.focus();
+                return;
+            }
+            if (state.usedUtrs.has(utr)) {
+                showToast('This UTR number has already been used!', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('btn-submit-deposit');
+            const label = document.getElementById('btn-deposit-label');
+            btn.disabled = true;
+            label.textContent = 'VERIFYING UTR PAYMENT...';
+
+            setTimeout(() => {
+                state.usedUtrs.add(utr);
+                state.balance = Math.round((state.balance + amt) * 100) / 100;
+                updateWalletUI();
+
+                state.transactions.unshift({
+                    id: 'UTR' + utr,
+                    type: 'DEPOSIT',
+                    method: `UPI (${MERCHANT_UPI_ID})`,
+                    amount: amt,
+                    status: 'VERIFIED',
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                });
+
+                utrInput.value = '';
+                btn.disabled = false;
+                updateDynamicPaymentLinksAndQR();
+                AudioEngine.playWin();
+                AudioEngine.speak(`${amt} rupees added to your wallet`);
+                showToast(`${formatINR(amt)} added to wallet!`, 'success');
+                closeWalletModal();
+            }, 800);
+        }
+
+        function processWithdraw() {
+            const amt = parseFloat(document.getElementById('withdraw-amount').value);
+            const dest = document.getElementById('withdraw-destination').value.trim();
+
+            if (isNaN(amt) || amt < 100) {
+                showToast('Minimum withdrawal is ₹100', 'error');
+                return;
+            }
+            if (amt > state.balance) {
+                showToast('Insufficient wallet balance!', 'error');
+                return;
+            }
+            if (!dest) {
+                showToast('Please enter UPI ID or Account Number', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('btn-submit-withdraw');
+            btn.disabled = true;
+            btn.textContent = 'PROCESSING WITHDRAWAL...';
+
+            setTimeout(() => {
+                state.balance -= amt;
+                updateWalletUI();
+
+                const txnId = 'WDL' + Math.floor(100000 + Math.random() * 900000);
+                state.transactions.unshift({
+                    id: txnId,
+                    type: 'WITHDRAW',
+                    method: dest,
+                    amount: amt,
+                    status: 'COMPLETED',
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                });
+
+                btn.disabled = false;
+                btn.textContent = 'WITHDRAW FUNDS';
+                AudioEngine.playClick();
+                showToast(`Withdrawal of ${formatINR(amt)} successful!`, 'success');
+                closeWalletModal();
+            }, 700);
+        }
+
+        function renderTransactionHistory() {
+            const list = document.getElementById('tx-history-list');
+            if (!state.transactions.length) {
+                list.innerHTML = '<p class="text-xs text-gray-500 text-center py-6">No transactions yet.</p>';
+                return;
+            }
+            list.innerHTML = state.transactions.map(tx => {
+                const isDep = tx.type === 'DEPOSIT';
+                return `
+                    <div class="bg-[#111217] border border-[#262834] rounded-xl p-2.5 flex items-center justify-between">
+                        <div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-xs font-extrabold ${isDep ? 'text-emerald-400' : 'text-amber-400'}">${tx.type}</span>
+                                <span class="text-[10px] text-gray-400">• ${tx.method}</span>
+                            </div>
+                            <div class="text-[10px] text-gray-500 font-mono mt-0.5">${tx.id} • ${tx.time}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs font-black ${isDep ? 'text-emerald-400' : 'text-white'}">${isDep ? '+' : '-'}${formatINR(tx.amount)}</div>
+                            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400">${tx.status}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ------------------------------------------
+        // 5. LIVE SIMULATED PLAYERS & HISTORY
+        // ------------------------------------------
+        const BOT_NAMES = ['Aarav_99', 'RohanK', 'Priya_S', 'Vikram77', 'Neha_G', 'KabirX', 'Ananya', 'Dev_Pro', 'Sahil_IN', 'Pooja21', 'Arjun_M', 'Karan_07'];
+
+        function renderHistoryBar() {
+            const bar = document.getElementById('history-bar');
+            bar.innerHTML = state.history.map(val => {
+                let cls = 'pill-blue';
+                if (val >= 10) cls = 'pill-pink';
+                else if (val >= 2) cls = 'pill-purple';
+                return `<span class="px-2 py-0.5 rounded-full text-[11px] font-extrabold tabular-nums shrink-0 ${cls}">${val.toFixed(2)}x</span>`;
+            }).join('');
+        }
+
+        function generateBotsForRound() {
+            const count = 12 + Math.floor(Math.random() * 8);
+            const shuffled = [...BOT_NAMES].sort(() => 0.5 - Math.random());
+            state.bots = [];
+            for (let i = 0; i < count; i++) {
+                const name = shuffled[i % shuffled.length] + (i >= shuffled.length ? i : '');
+                const bet = [10, 20, 50, 100, 200, 500, 1000][Math.floor(Math.random() * 7)];
+                const target = +(1.15 + Math.pow(Math.random(), 2.2) * 8).toFixed(2);
+                state.bots.push({
+                    id: 'bot-' + i,
+                    name,
+                    bet,
+                    target,
+                    cashed: false,
+                    win: 0,
+                    isUser: false
+                });
+            }
+            renderLiveBets();
+        }
+
+        function addUserToLiveList(panelId, amount) {
+            removeUserFromLiveList(panelId);
+            state.bots.unshift({
+                id: 'user-' + panelId,
+                name: `You (Bet ${panelId})`,
+                bet: amount,
+                target: null,
+                cashed: false,
+                win: 0,
+                isUser: true
+            });
+            renderLiveBets();
+        }
+
+        function removeUserFromLiveList(panelId) {
+            state.bots = state.bots.filter(b => b.id !== 'user-' + panelId);
+            renderLiveBets();
+        }
+
+        function markUserWonInLiveList(panelId, mult, win) {
+            const item = state.bots.find(b => b.id === 'user-' + panelId);
+            if (item) {
+                item.cashed = true;
+                item.target = mult;
+                item.win = win;
+                renderLiveBets();
+            }
+        }
+
+        function renderLiveBets() {
+            const container = document.getElementById('live-bets-container');
+            document.getElementById('online-count').textContent = state.bots.length + 142;
+
+            container.innerHTML = state.bots.map(b => {
+                const rowBg = b.cashed
+                    ? 'bg-emerald-500/12 border-l-2 border-emerald-400'
+                    : (b.isUser ? 'bg-amber-500/10 border-l-2 border-amber-400' : '');
+                return `
+                    <div class="grid grid-cols-12 items-center px-2.5 py-1.5 text-xs ${rowBg}">
+                        <div class="col-span-5 flex items-center gap-1.5 truncate">
+                            <span class="w-5 h-5 rounded-full bg-[#262836] text-[10px] font-bold flex items-center justify-center text-gray-300 shrink-0">${b.name[0]}</span>
+                            <span class="truncate font-semibold ${b.isUser ? 'text-amber-300' : 'text-gray-300'}">${b.name}</span>
+                        </div>
+                        <div class="col-span-3 text-right font-bold text-gray-200 tabular-nums">₹${b.bet}</div>
+                        <div class="col-span-2 text-center">
+                            ${b.cashed ? `<span class="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 text-[10px] font-extrabold">${b.target.toFixed(2)}x</span>` : '<span class="text-gray-600">-</span>'}
+                        </div>
+                        <div class="col-span-2 text-right font-extrabold tabular-nums ${b.cashed ? 'text-emerald-400' : 'text-gray-600'}">
+                            ${b.cashed ? '₹' + Math.round(b.win) : '-'}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ------------------------------------------
+        // 6. CORE GAME LOOP & CANVAS RENDERER
+        // ------------------------------------------
+        const canvas = document.getElementById('aviator-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            const stage = document.getElementById('game-stage');
+            if (!stage) return;
+            const dpr = window.devicePixelRatio || 1;
+            const rect = stage.getBoundingClientRect();
+            const width = rect.width || stage.clientWidth || window.innerWidth || 360;
+            const height = rect.height || stage.clientHeight || 250;
+            canvas.width = width * dpr;
+            canvas.height = height * dpr;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+        window.addEventListener('resize', resizeCanvas);
+        if (typeof ResizeObserver !== 'undefined') {
+            new ResizeObserver(() => resizeCanvas()).observe(document.getElementById('game-stage'));
+        }
+
+        function generateCrashMultiplier() {
+            const r = Math.random();
+            if (r < 0.04) return 1.00;
+            const raw = 0.97 / (1 - r);
+            return Math.min(100.00, Math.max(1.01, +raw.toFixed(2)));
+        }
+
+        function enterWaitingPhase(now) {
+            state.phase = 'WAITING';
+            state.multiplier = 1.00;
+            state.phaseStartTime = now;
+            document.getElementById('round-number').textContent = state.roundId;
+
+            document.getElementById('overlay-waiting').classList.remove('hidden');
+            document.getElementById('overlay-flying').classList.add('hidden');
+            document.getElementById('overlay-crashed').classList.add('hidden');
+
+            generateBotsForRound();
+
+            [1, 2].forEach(id => {
+                const p = state.panels[id];
+                if (p.status === 'QUEUED') {
+                    p.status = 'ACTIVE';
+                    addUserToLiveList(id, p.amount);
+                } else if (p.status === 'CASHED' || p.status === 'ACTIVE') {
+                    p.status = 'IDLE';
+                }
+                refreshPanelButton(id);
+            });
+        }
+
+        function enterFlyingPhase(now) {
+            state.phase = 'FLYING';
+            state.multiplier = 1.00;
+            state.crashPoint = generateCrashMultiplier();
+            state.phaseStartTime = now;
+
+            document.getElementById('overlay-waiting').classList.add('hidden');
+            document.getElementById('overlay-flying').classList.remove('hidden');
+            document.getElementById('overlay-crashed').classList.add('hidden');
+
+            AudioEngine.startEngine();
+            AudioEngine.speak('Take off!');
+
+            [1, 2].forEach(id => refreshPanelButton(id));
+        }
+
+        function enterCrashedPhase(now) {
+            state.phase = 'CRASHED';
+            state.multiplier = state.crashPoint;
+            state.phaseStartTime = now;
+
+            AudioEngine.playCrash();
+            AudioEngine.speak('Plane flew away!');
+
+            document.getElementById('overlay-waiting').classList.add('hidden');
+            document.getElementById('overlay-flying').classList.add('hidden');
+            document.getElementById('overlay-crashed').classList.remove('hidden');
+            document.getElementById('crash-multiplier').textContent = state.crashPoint.toFixed(2) + 'x';
+
+            state.history.unshift(state.crashPoint);
+            if (state.history.length > 18) state.history.pop();
+            renderHistoryBar();
+
+            [1, 2].forEach(id => {
+                const p = state.panels[id];
+                if (p.status === 'ACTIVE' || p.status === 'CASHED') {
+                    p.status = 'IDLE';
+                }
+                refreshPanelButton(id);
+            });
+
+            state.roundId++;
+        }
+
+        function drawPlane(x, y, angleRad, timeMs) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angleRad);
+
+            const glow = ctx.createRadialGradient(-10, 0, 2, -10, 0, 36);
+            glow.addColorStop(0, 'rgba(239, 68, 68, 0.55)');
+            glow.addColorStop(1, 'rgba(239, 68, 68, 0)');
+            ctx.fillStyle = glow;
+            ctx.beginPath();
+            ctx.arc(-10, 0, 36, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.moveTo(26, 2);
+            ctx.quadraticCurveTo(10, -10, -22, -6);
+            ctx.lineTo(-28, -14);
+            ctx.lineTo(-32, -14);
+            ctx.lineTo(-27, 2);
+            ctx.lineTo(-31, 8);
+            ctx.lineTo(-25, 8);
+            ctx.lineTo(-20, 4);
+            ctx.quadraticCurveTo(8, 10, 26, 2);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = '#b91c1c';
+            ctx.beginPath();
+            ctx.moveTo(4, 1);
+            ctx.lineTo(-10, 12);
+            ctx.lineTo(-16, 11);
+            ctx.lineTo(-6, 1);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = '#fecaca';
+            ctx.beginPath();
+            ctx.ellipse(6, -3, 6, 2.5, -0.1, 0, Math.PI * 2);
+            ctx.fill();
+
+            const propH = Math.sin(timeMs * 0.06) * 14;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(27, -propH);
+            ctx.lineTo(27, propH);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        function renderCanvas(now) {
+            const stage = document.getElementById('game-stage');
+            const w = stage.clientWidth || window.innerWidth || 360;
+            const h = stage.clientHeight || 250;
+            ctx.clearRect(0, 0, w, h);
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+            ctx.lineWidth = 1;
+            const step = 45;
+            for (let gx = step; gx < w; gx += step) {
+                ctx.beginPath();
+                ctx.moveTo(gx, 0);
+                ctx.lineTo(gx, h);
+                ctx.stroke();
+            }
+            for (let gy = step; gy < h; gy += step) {
+                ctx.beginPath();
+                ctx.moveTo(0, gy);
+                ctx.lineTo(w, gy);
+                ctx.stroke();
+            }
+
+            if (state.phase === 'WAITING') {
+                drawPlane(48, h - 34, -0.05, now);
+                return;
+            }
+
+            const elapsedSec = (now - state.phaseStartTime) / 1000;
+            const progress = Math.min(1, elapsedSec / 7.5);
+            const padLeft = 28;
+            const padBottom = 26;
+            const maxX = Math.max(120, w - 65);
+            const maxY = Math.max(100, h - 55);
+
+            let planeX, planeY, angle;
+
+            if (state.phase === 'FLYING') {
+                const hoverY = Math.sin(now * 0.005) * 6;
+                planeX = padLeft + progress * (maxX - padLeft);
+                planeY = (h - padBottom) - Math.pow(progress, 1.35) * (maxY - padBottom) + hoverY;
+                angle = -0.18 - progress * 0.14;
+            } else {
+                const crashSec = (now - state.phaseStartTime) / 1000;
+                const baseX = padLeft + progress * (maxX - padLeft);
+                const baseY = (h - padBottom) - Math.pow(progress, 1.35) * (maxY - padBottom);
+                planeX = baseX + crashSec * 480;
+                planeY = baseY - crashSec * 320;
+                angle = -0.45;
+            }
+
+            if (state.phase === 'FLYING') {
+                const ctrlX = padLeft + (planeX - padLeft) * 0.55;
+                const ctrlY = h - padBottom;
+
+                const grad = ctx.createLinearGradient(0, planeY, 0, h - padBottom);
+                grad.addColorStop(0, 'rgba(239, 68, 68, 0.35)');
+                grad.addColorStop(1, 'rgba(239, 68, 68, 0.0)');
+
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.moveTo(padLeft, h - padBottom);
+                ctx.quadraticCurveTo(ctrlX, ctrlY, planeX, planeY);
+                ctx.lineTo(planeX, h - padBottom);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.strokeStyle = '#ef4444';
+                ctx.lineWidth = 4;
+                ctx.shadowColor = 'rgba(239, 68, 68, 0.85)';
+                ctx.shadowBlur = 14;
+                ctx.beginPath();
+                ctx.moveTo(padLeft, h - padBottom);
+                ctx.quadraticCurveTo(ctrlX, ctrlY, planeX, planeY);
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+
+            if (planeX < w + 80 && planeY > -80) {
+                drawPlane(planeX, planeY, angle, now);
+            }
+        }
+
+        function tickGame() {
+            const now = Date.now();
+            if (!state.phaseStartTime) state.phaseStartTime = now;
+
+            if (state.phase === 'WAITING') {
+                const elapsed = now - state.phaseStartTime;
+                const remaining = Math.max(0, state.waitDuration - elapsed);
+                const pct = (remaining / state.waitDuration) * 100;
+
+                document.getElementById('wait-bar').style.width = pct + '%';
+                document.getElementById('wait-seconds').textContent = (remaining / 1000).toFixed(1) + 's';
+
+                if (remaining <= 0) {
+                    enterFlyingPhase(now);
+                }
+            } else if (state.phase === 'FLYING') {
+                const elapsedSec = (now - state.phaseStartTime) / 1000;
+                const currentMult = Math.pow(Math.E, 0.11 * elapsedSec);
+                state.multiplier = Math.max(1.00, currentMult);
+
+                document.getElementById('live-multiplier').textContent = state.multiplier.toFixed(2) + 'x';
+                AudioEngine.updateEngine(state.multiplier);
+
+                [1, 2].forEach(id => {
+                    const p = state.panels[id];
+                    if (p.status === 'ACTIVE') {
+                        refreshPanelButton(id);
+                        const autoEnabled = document.getElementById(`auto-check-${id}`).checked;
+                        const autoTarget = parseFloat(document.getElementById(`auto-val-${id}`).value) || 2.00;
+                        if (autoEnabled && state.multiplier >= autoTarget) {
+                            cashOutPanel(id);
+                        }
+                    }
+                });
+
+                let botsChanged = false;
+                state.bots.forEach(b => {
+                    if (!b.isUser && !b.cashed && state.multiplier >= b.target) {
+                        b.cashed = true;
+                        b.win = b.bet * b.target;
+                        botsChanged = true;
+                    }
+                });
+                if (botsChanged) renderLiveBets();
+
+                if (state.multiplier >= state.crashPoint) {
+                    enterCrashedPhase(now);
+                }
+            } else if (state.phase === 'CRASHED') {
+                const elapsed = now - state.phaseStartTime;
+                if (elapsed >= state.crashDuration) {
+                    enterWaitingPhase(now);
+                }
+            }
+
+            renderCanvas(now);
+        }
+
+        // ------------------------------------------
+        // 7. INITIALIZE IMMEDIATELY + DOM READY
+        // ------------------------------------------
+        let gameStarted = false;
+        function startAviatorEngine() {
+            if (gameStarted) return;
+            gameStarted = true;
+            resizeCanvas();
+            setTimeout(resizeCanvas, 150);
+            updateWalletUI();
+            renderHistoryBar();
+            [1, 2].forEach(id => {
+                const inp = document.getElementById(`bet-amt-${id}`);
+                if (inp) {
+                    inp.addEventListener('input', () => refreshPanelButton(id));
+                }
+            });
+            enterWaitingPhase(Date.now());
+            setInterval(tickGame, 35);
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', startAviatorEngine);
+        } else {
+            startAviatorEngine();
+        }
+    </script>
+</body>
+</html>
